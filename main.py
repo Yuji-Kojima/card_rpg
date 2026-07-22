@@ -6,6 +6,7 @@ sw=800
 sh=600
 scene=0
 can=True
+phase=None
 P = None
 root.geometry(f"{sw}x{sh}")
 root.title("pygameから逃げるな godotから逃げるな tkinterに甘えるな")
@@ -43,6 +44,19 @@ class Draw():
                 self.canvas.photos.append(photo)
                 self.canvas.tag_bind(f"field_{str(i)}", "<Button-1>", lambda e,val=i,id=id:print("フィールドのカード",id,val))
 
+            phase_button=self.canvas.create_rectangle(sw-100,sh/2,sw,sh/2+100,fill="red",tag="phase")
+            self.canvas.tag_bind("phase", "<Button-1>", lambda phase=phase:phasechange(phase))
+
+def phasechange(a):
+    global phase
+    if phase == "draw":
+        phase = "main"
+    elif phase == "main":
+        phase = "end"
+    else:
+        phase = "draw"
+
+
 class Player():
     def __init__(self):
         self.hand=[]
@@ -70,6 +84,16 @@ def main():#mainaminanisfniamiamiaminaminamianimnaimanmianmianmianminaimnamnaina
         D.draw({"none":None}) # drawは、辞書に入ったものを中で変数として取り出すので、送りつけるときは辞書にパッケージングする
     if scene == 1:
         D.draw({"hand":P.hand,"field":P.field,"hp":[P.hp,E.hp]})
+        if phase == "draw":
+            phasechange(phase)
+        if phase == "end":
+            damage=0
+            for i in P.field:
+                d=G.card[i]["damage"]
+                damage+=d
+            E.hp -= damage
+            phasechange(phase)
+        
     root.after(16,lambda: main())
 
 def duelstart(event):#デュエルスタートする時用のシーン変更
