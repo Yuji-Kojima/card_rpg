@@ -11,12 +11,13 @@ phase=None
 P = None
 root.geometry(f"{sw}x{sh}")
 root.title("pygameから逃げるな godotから逃げるな tkinterに甘えるな")
-class Draw():
+class Draw(): #将来的にカード部分だけ、一度描いたら削除しない別クラスにする
     # mainから毎フレーム呼ばれる
     def __init__(self):
         self.canvas=tk.Canvas(root,bg="white", width=sw, height=sh)
     def draw(self,data):
         # 毎フレームキャンバスを置いて、中身を消してから描画
+        # 本来ならここは、デュエルフィールドとかだけを描画する
         self.canvas.pack()
         self.canvas.delete("all")
         if scene == 0:
@@ -37,7 +38,7 @@ class Draw():
                 photo=cardmake(id)
                 self.canvas.create_image(10+i*90,sh-130,image=photo,anchor=tk.NW,tag=f"hand_{str(i)}")# val番目のカードはid
                 self.canvas.photos.append(photo)
-                self.canvas.tag_bind(f"hand_{str(i)}", "<Button-1>", lambda e,val=i,id=id:cardplay(id,val))
+                self.canvas.tag_bind(f"hand_{str(i)}", "<Button-1>", lambda e,val=i,id=id:cardplay(id,val,P.field,P.hand))
             for i in range(len(field)):
                 id=field[i]
                 photo=cardmake(id)
@@ -71,11 +72,10 @@ def phasechange(btn=None):
         phase = "end"
     else:
         if turn == "player":
-            turn == "enemy"
+            turn = "enemy"
         else:
-            turn == "player"
+            turn = "player"
         phase = "draw"
-
 
 class Player():
     def __init__(self):
@@ -83,6 +83,19 @@ class Player():
         self.deck=[]
         self.field=[]
         self.hp=20
+    def draw(self):
+        if len(self.deck)>0:
+            a=self.deck.pop(0)
+            self.hand.append(a)
+    def shuffle(self):
+        random.shuffle(self.deck)
+    def debugdeck(self):
+        self.deck=["test","test2"]
+        for i in range(15):
+            self.deck.append("test")
+            self.deck.append("test2")
+        self.shuffle()
+
 D=Draw()
 
 class Game():
@@ -104,15 +117,22 @@ def main():#mainaminanisfniamiamiaminaminamianimnaimanmianmianmianminaimnamnaina
         D.draw({"none":None}) # drawは、辞書に入ったものを中で変数として取り出すので、送りつけるときは辞書にパッケージングする
     if scene == 1:
         D.draw({"hand":P.hand,"field":P.field,"hp":[P.hp,E.hp]})
-        if phase == "draw" and turn == "player":
-            P.hand.append("test")
+        if phase == "draw":
+            if turn == "player":
+                P.draw()
+            else:
+                E.draw()
             phasechange()
+        if phase == "main":
+            if turn == "enemy":
+                enemy_move()
         if phase == "end":
-            damage=0
-            for i in P.field:
-                d=G.card[i]["damage"]
-                damage+=d
-            E.hp -= damage
+            if turn == "player":
+                damage=damagephase(P.field)
+                E.hp -= damage
+            else:
+                damage=damagephase(E.field)
+                P.hp -= damage
             phasechange()
         if P.hp < 1:
             result_check("lose")
@@ -126,10 +146,22 @@ def main():#mainaminanisfniamiamiaminaminamianimnaimanmianmianmianminaimnamnaina
         
     root.after(16,lambda: main())
 
+def damagephase(field):
+    
+    damage=0
+    for i in field:
+        d=G.card[i]["damage"]
+        damage+=d
+    return damage
+
+
 def result_check(a):
     global scene,result
     sc(2)
     result = a
+
+def enemy_move():
+    phasechange()
 
 def duelstart(event):#デュエルスタートする時用のシーン変更
     global scene,P,E,turn,phase
@@ -137,16 +169,18 @@ def duelstart(event):#デュエルスタートする時用のシーン変更
     E=Player()
     turn = "player"
     phase = "main"
-    P.hand=["test","test2"]
+    P.debugdeck()
+    for i in range(5):
+        P.draw()
     sc(1)
 
-def cardplay(id,val):#カードをプレイするときに
+def cardplay(id,val,field,hand):#カードをプレイするときに
     print(id,val)
     if tche(id) == "unit":
-        if len(P.field) < 5:
+        if len(field) < 5:
             print("プレイした！")
-            c=P.hand.pop(val)
-            P.field.append(c)
+            c=hand.pop(val)
+            field.append(c)
         else:
             print("盤面　is いっぱい")
 
